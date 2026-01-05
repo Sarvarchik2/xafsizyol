@@ -1,0 +1,56 @@
+{
+    "search": "Qidirish",
+    "city": "Shahar",
+    "district": "Tuman",
+    "pothole_list": "Chuqurlarni o'rganing",
+    "report_step_1": "Muammoni ko'rsating",
+    "severity_critical": "Juda xavfli",
+    "add_button": "Chuqurlik haqida xabar berish",
+    "nav": {
+        "map": "Xarita",
+        "list": "Ro'yxat",
+        "report": "Xabar berish",
+        "profile": "Profil",
+        "my_reports": "Mening xabarlarim",
+        "unknown_street": "Noma'lum ko'cha",
+        "no_reports_found": "Xabarlar topilmadi",
+        "city": "Shahar",
+        "district": "Tuman"
+    },
+    "status": {
+        "sent": "Юборилди",
+        "review": "Кориб чикилмокда",
+        "done": "Бажарилди",
+        "recent": "Yaqinda"
+    },
+    "report": {
+        "title": "Muammo haqida xabar",
+        "description": "Tavsif",
+        "severity": "Xavflilik darajasi",
+        "location": "Joylashuv",
+        "photo": "Rasm",
+        "phone": "Telefon raqami",
+        "submit": "Yuborish",
+        "take_photo": "Rasmga oling yoki yuklang",
+        "step_2_title": "Qayerda joylashgan?",
+        "step_2_desc": "Xaritada joylashuvni tasdiqlang",
+        "step_3_title": "Oz qoldi!",
+        "step_3_desc": "Muammo qanchalik jiddiy?",
+        "pothole_size": "Chuqurning o'lchami",
+        "extra_details": "Qo'shimcha ma'lumotlar (ixtiyoriy)",
+        "placeholder_details": "Masalan: g'ildirakka zarar yetkazishi mumkin...",
+        "preview_title": "Oxirgi ko'zdan kechirish",
+        "preview_desc": "Yuborishdan oldin hamma narsa to'g'riligiga ishonch hosil qiling",
+        "selected_location": "Tanlangan joylashuv",
+        "no_desc": "Qo'shimcha tavsif berilmagan",
+        "back": "Orqaga",
+        "continue": "Davom etish",
+        "placeholder_address": "Ko'cha nomi yoki mo'ljal"
+    },
+    "map": {
+        "search_placeholder": "Chuqur qayerda?",
+        "location": "Joylashuv",
+        "vote_button": "Menda ham shu muammo",
+        "vote": "Ovoz berish"
+    }
+}

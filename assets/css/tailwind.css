@@ -1,0 +1,37 @@
+/* Airbnb Style Main CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply text-airbnb-black bg-white font-sans antialiased;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply font-bold tracking-tight;
+    }
+}
+
+@layer components {
+    .btn-primary {
+        @apply bg-primary text-white font-bold py-3 px-6 rounded-airbnb transition-all duration-200 hover:bg-primary-dark active:scale-95 shadow-airbnb;
+    }
+
+    .btn-secondary {
+        @apply bg-white text-airbnb-black border border-airbnb-black font-bold py-3 px-6 rounded-airbnb transition-all duration-200 hover:bg-airbnb-bg active:scale-95;
+    }
+
+    .card-airbnb {
+        @apply bg-white rounded-airbnb-lg shadow-airbnb overflow-hidden border border-airbnb-lightGray transition-shadow duration-300 hover:shadow-airbnb-hover;
+    }
+
+    .input-airbnb {
+        @apply w-full px-4 py-3 rounded-airbnb border border-airbnb-lightGray focus:border-airbnb-black focus:outline-none transition-colors duration-200;
+    }
+}
