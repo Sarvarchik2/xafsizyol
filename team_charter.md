@@ -4,11 +4,11 @@
 The goal of this team is to develop **Xafsizyol** (Safe Road), a platform for reporting road hazards (like potholes) to improve road safety and infrastructure maintenance.
 
 ## 2. Team Members & Roles
-- **Team Lead:** [Sarvar]
-- **Frontend Developer:** [NSarvarame]
-- **Backend Developer:** [Sarvar]
-- **UI/UX Designer:** [Sarvar]
-- **QA/DevOps:** [Sarvar]
+- **Team Lead:** Sarvar
+- **Frontend Developer:** Sarvar
+- **Backend Developer:** Sarvar
+- **UI/UX Designer:** Sarvar
+- **QA/DevOps:** Sarvar
 
 ## 3. Communication Plan
 - **Primary Channel:** [e.g., WhatsApp/Telegram/Slack]
@@ -25,4 +25,4 @@ The goal of this team is to develop **Xafsizyol** (Safe Road), a platform for re
 - Respect deadlines and notify the team if a task is blocked.
 
 ## 6. Signatures
-- [Sarvar]
+- Sarvar
