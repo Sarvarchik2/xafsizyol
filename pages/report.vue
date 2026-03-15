@@ -34,13 +34,16 @@
 
         <div
           class="h-64 bg-airbnb-bg rounded-airbnb-lg mb-4 overflow-hidden relative border border-airbnb-lightGray shadow-inner">
-          <div id="mini-map" class="h-full w-full"></div>
-          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <LucideMapPin class="w-8 h-8 text-primary -mt-8 drop-shadow-lg" />
+          <div id="mini-map" class="h-full w-full z-0"></div>
+          <div class="absolute inset-0 z-[1000] flex items-center justify-center pointer-events-none">
+            <div class="relative flex items-center justify-center">
+              <LucideMapPin class="w-10 h-10 text-primary drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] -mt-10 animate-bounce-short" />
+              <div class="absolute bottom-0 w-2 h-1 bg-black/20 rounded-full blur-[1px]"></div>
+            </div>
           </div>
           <!-- Auto-detect Badge -->
           <div
-            class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-white/50 flex items-center gap-2 transition-all">
+            class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-white/50 flex items-center gap-2 transition-all z-[1001]">
             <div v-if="isGeocoding"
               class="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin">
             </div>
@@ -49,6 +52,14 @@
               'Detecting...' :
               'Point Confirmed' }}</span>
           </div>
+
+          <!-- Get Location Button -->
+          <button @click="getUserLocation"
+            class="absolute bottom-4 right-4 p-3 bg-white hover:bg-gray-50 text-airbnb-black rounded-full shadow-lg border border-airbnb-lightGray transition-all z-[1001] active:scale-95"
+            :class="{ 'animate-pulse text-primary border-primary/20': isLocating }"
+            :title="$t('map.get_location', 'Get Location')">
+            <LucideNavigation class="w-5 h-5" />
+          </button>
         </div>
 
         <div class="relative flex gap-2">
@@ -84,7 +95,7 @@
               class="py-3 px-4 border rounded-airbnb font-medium text-sm transition-all"
               :class="form.severity === s ? 'border-airbnb-black bg-airbnb-black text-white' : 'border-airbnb-lightGray hover:border-airbnb-black'"
               @click="form.severity = s">
-              {{ s }}
+              {{ $t('severity.' + s.toLowerCase()) }}
             </button>
           </div>
 
@@ -109,10 +120,10 @@
           <img :src="form.photo" class="w-full h-48 object-cover" />
           <div class="p-4">
             <div class="flex justify-between items-start mb-2">
-              <h3 class="font-bold">{{ form.address || $t('report.selected_location') }}</h3>
-              <span class="text-xs font-bold uppercase py-1 px-2 bg-airbnb-bg rounded">{{ form.severity }}</span>
+              <h3 class="font-bold truncate">{{ form.address || $t('report.selected_location') }}</h3>
+              <span class="text-[10px] font-bold uppercase py-1 px-2 bg-airbnb-bg rounded whitespace-nowrap ml-2">{{ $t('severity.' + form.severity.toLowerCase()) }}</span>
             </div>
-            <p class="text-sm text-airbnb-gray">{{ form.description || $t('report.no_desc') }}</p>
+            <p class="text-sm text-airbnb-gray line-clamp-2">{{ form.description || $t('report.no_desc') }}</p>
           </div>
         </div>
       </div>
@@ -137,7 +148,7 @@
 </template>
 
 <script setup>
-import { LucideCamera, LucideMapPin, LucideSearch, LucideZap } from 'lucide-vue-next'
+import { LucideCamera, LucideMapPin, LucideSearch, LucideZap, LucideNavigation } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const reportsStore = useReportsStore()
@@ -171,6 +182,47 @@ onMounted(() => {
 
 let miniMap = null
 const isGeocoding = ref(false)
+const isLocating = ref(false)
+
+const getUserLocation = () => {
+  if (!process.client || !miniMap) return
+  
+  isLocating.value = true
+  
+  const setLocation = (lat, lng) => {
+    isLocating.value = false
+    miniMap.setView([lat, lng], 17)
+  }
+
+  if (window.Telegram?.WebApp?.LocationManager) {
+    const lm = window.Telegram.WebApp.LocationManager
+    lm.init(() => {
+      lm.getLocation((data) => {
+        if (data) {
+          setLocation(data.latitude, data.longitude)
+        } else {
+          isLocating.value = false
+        }
+      })
+    })
+    return
+  }
+
+  if ('geolocation' in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation(position.coords.latitude, position.coords.longitude)
+      },
+      (error) => {
+        isLocating.value = false
+        console.error('Geolocation error:', error)
+      },
+      { enableHighAccuracy: true }
+    )
+  } else {
+    isLocating.value = false
+  }
+}
 
 const reverseGeocode = async (lat, lng) => {
   isGeocoding.value = true
@@ -269,20 +321,18 @@ const prevStep = () => {
 const submitReport = async () => {
   loading.value = true
   try {
-    const { data, error } = await useFetch('/api/reports', {
+    await $fetch('/api/reports', {
       method: 'POST',
       body: {
         ...form.value,
-        userId: window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || 'anonymous'
+        userId: window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || 'test_user_123'
       }
     })
-
-    if (error.value) throw error.value
 
     // Add to local store as well for immediate feedback in "My Reports"
     reportsStore.addReport({
       ...form.value,
-      userId: window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || 'anonymous'
+      userId: window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || 'test_user_123'
     })
 
     alert(t('status.sent'))
@@ -319,5 +369,14 @@ const submitReport = async () => {
 
 .animate-in {
   animation: fade-in 0.3s ease-out forwards, slide-in-from-bottom 0.3s ease-out forwards;
+}
+
+@keyframes bounce-short {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-bounce-short {
+  animation: bounce-short 2s ease-in-out infinite;
 }
 </style>

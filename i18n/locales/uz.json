@@ -52,5 +52,16 @@
         "location": "Joylashuv",
         "vote_button": "Menda ham shu muammo",
         "vote": "Ovoz berish"
+    },
+    "tags": {
+        "all": "Hammasi",
+        "critical": "Xavfli",
+        "recent": "Yaqinda",
+        "fixed": "Tuzatilgan"
+    },
+    "severity": {
+        "small": "Kichik",
+        "medium": "O'rtacha",
+        "critical": "Juda xavfli"
     }
 }

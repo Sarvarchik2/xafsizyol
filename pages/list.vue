@@ -47,10 +47,10 @@ const cityFilter = ref('')
 const districtFilter = ref('')
 
 const categories = computed(() => [
-  { id: 'all', label: t('pothole_list'), icon: LucideAlertCircle },
-  { id: 'critical', label: t('severity_critical'), icon: LucideZap },
-  { id: 'recent', label: t('status.recent'), icon: LucideClock },
-  { id: 'fixed', label: t('status.done'), icon: LucideCheckCircle },
+  { id: 'all', label: t('tags.all'), icon: LucideAlertCircle },
+  { id: 'critical', label: t('tags.critical'), icon: LucideZap },
+  { id: 'recent', label: t('tags.recent'), icon: LucideClock },
+  { id: 'fixed', label: t('tags.fixed'), icon: LucideCheckCircle },
 ])
 
 const activeCategory = ref('all')

@@ -2,7 +2,7 @@
   <NuxtLayout>
     <div class="h-[calc(100vh-70px)] md:h-screen relative">
       <AppMap :points="reportsStore.reports" :selected-report-id="route.query.reportId" @report="handleReport"
-        @vote="handleVote" />
+        @vote="handleVote" @clear-selected="handleClearSelected" />
     </div>
   </NuxtLayout>
 </template>
@@ -19,5 +19,9 @@ const handleReport = () => {
 
 const handleVote = (id) => {
   reportsStore.voteReport(id)
+}
+
+const handleClearSelected = () => {
+  navigateTo({ path: '/', query: {} }, { replace: true })
 }
 </script>

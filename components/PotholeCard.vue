@@ -5,6 +5,7 @@
     <!-- Image Placeholder (Airbnb Style) -->
     <div class="aspect-[4/3] bg-airbnb-bg relative overflow-hidden rounded-2xl">
       <img v-if="pothole.photo" :src="pothole.photo"
+        @error="(e) => e.target.src = 'https://picsum.photos/seed/broken/600/400'"
         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
       <div v-else class="w-full h-full flex items-center justify-center text-airbnb-lightGray bg-gray-50">
         <LucideImage class="w-12 h-12 opacity-20" />
@@ -33,7 +34,7 @@
             :class="pothole.severity === 'Critical' ? 'text-red-500' : 'text-orange-400'" />
           <span class="text-[10px] font-black uppercase tracking-tighter"
             :class="pothole.severity === 'Critical' ? 'text-red-600' : 'text-orange-600'">
-            {{ pothole.severity }}
+            {{ $t('severity.' + pothole.severity.toLowerCase()) }}
           </span>
         </div>
       </div>
@@ -45,8 +46,9 @@
             <span>{{ pothole.phoneNumber }}</span>
           </div>
           <div class="flex items-center gap-1.5 text-[11px] font-medium opacity-60">
-            <LucideClock class="w-3 h-3" />
-            <span>{{ new Date(pothole.createdAt).toLocaleDateString() }}</span>
+            <ClientOnly>
+              <span>{{ new Date(pothole.createdAt).toLocaleDateString() }}</span>
+            </ClientOnly>
           </div>
         </div>
 

@@ -9,14 +9,15 @@
             <LucideUserCircle class="w-10 h-10" />
           </div>
         </div>
-        <div>
-          <h2 class="text-xl font-bold text-airbnb-black">{{ user?.first_name || 'User' }} {{ user?.last_name || '' }}
-          </h2>
-          <p class="text-sm text-airbnb-gray flex items-center gap-1 mt-1">
-            <LucidePhone class="w-3.5 h-3.5" />
-            {{ phoneNumber || 'No phone provided' }}
-          </p>
-          <p v-if="user?.username" class="text-xs text-primary font-medium mt-0.5">@{{ user.username }}</p>
+        <div class="min-w-0 flex-grow">
+          <h2 class="text-xl font-bold text-airbnb-black truncate leading-tight">{{ user?.first_name || 'Test' }} {{ user?.last_name || 'User' }}</h2>
+          <div class="flex flex-col gap-0.5 mt-1">
+            <p class="text-xs font-bold text-primary">@{{ user?.username || 'testuser' }}</p>
+            <p class="text-sm text-airbnb-gray flex items-center gap-1.5 mt-0.5 truncate">
+              <LucidePhone class="w-3.5 h-3.5" />
+              <span class="font-semibold">{{ phoneNumber || '3324234234' }}</span>
+            </p>
+          </div>
         </div>
       </section>
 
@@ -44,32 +45,36 @@
           class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
           <div class="flex gap-4">
             <div class="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-              <img v-if="report.photo" :src="report.photo" class="w-full h-full object-cover" />
+              <img v-if="report.photo" :src="report.photo" 
+                @error="(e) => e.target.src = 'https://picsum.photos/seed/broken/600/400'"
+                class="w-full h-full object-cover" />
               <div v-else class="w-full h-full flex items-center justify-center">
                 <LucideImage class="w-6 h-6 text-gray-400" />
               </div>
             </div>
-            <div class="flex-grow">
-              <div class="flex justify-between items-start mb-1">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider" :class="{
+            <div class="flex-grow min-w-0">
+              <div class="flex justify-between items-start mb-1 gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider whitespace-nowrap" :class="{
                   'bg-yellow-100 text-yellow-700': report.status === 'Pending',
                   'bg-blue-100 text-blue-700': report.status === 'In Progress',
                   'bg-green-100 text-green-700': report.status === 'Fixed'
                 }">
                   {{ getStatusLabel(report.status) }}
                 </span>
-                <span class="text-[10px] text-airbnb-gray">{{ new Date(report.createdAt).toLocaleDateString() }}</span>
+                <ClientOnly>
+                  <span class="text-[10px] text-airbnb-gray">{{ new Date(report.createdAt).toLocaleDateString() }}</span>
+                </ClientOnly>
               </div>
               <h3 class="font-bold text-airbnb-black text-sm truncate">{{ report.address || 'Unknown address' }}</h3>
               <p class="text-airbnb-gray text-xs line-clamp-1 mt-1">{{ report.description }}</p>
 
               <div class="mt-2 flex items-center gap-2">
-                <span class="text-[10px] font-bold" :class="{
+                <span class="text-[10px] font-bold uppercase" :class="{
                   'text-red-500': report.severity === 'Critical',
                   'text-orange-500': report.severity === 'Medium',
                   'text-blue-500': report.severity === 'Small'
                 }">
-                  {{ report.severity }}
+                  {{ $t('severity.' + report.severity.toLowerCase()) }}
                 </span>
               </div>
             </div>
@@ -91,9 +96,21 @@ const user = ref(null)
 const phoneNumber = ref('')
 
 onMounted(() => {
-  if (process.client && window.Telegram?.WebApp) {
-    const tg = window.Telegram.WebApp
-    user.value = tg.initDataUnsafe?.user
+  if (process.client) {
+    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      const tg = window.Telegram.WebApp
+      user.value = tg.initDataUnsafe.user
+    } else {
+      // Mock test user fallback
+      user.value = {
+        id: 'test_user_123',
+        first_name: 'Test',
+        last_name: 'User',
+        username: 'testuser',
+        photo_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80'
+      }
+    }
+    
     // Try to get phone from the last report if available
     const lastReport = reportsStore.reports.find(r => r.userId === user.value?.id?.toString())
     if (lastReport?.phoneNumber) {
@@ -104,8 +121,8 @@ onMounted(() => {
 
 // For MVP we can use a mock user ID or Telegram ID if available
 const userReports = computed(() => {
-  // In a real TWA, we'd get this from window.Telegram?.WebApp?.initDataUnsafe?.user?.id
-  return reportsStore.reports // For now, showing all local reports as "mine"
+  if (!user.value?.id) return []
+  return reportsStore.getUserReports(user.value.id.toString())
 })
 
 const getStatusLabel = (status) => {
