@@ -27,4 +27,4 @@ jobs:
 
     - name: Docker Compose Check
       run: |
-        docker-compose config
+        docker compose config
