@@ -3,17 +3,16 @@ FROM node:18 AS build-stage
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package.json (don't rely on package-lock.json for architecture-specific native bindings)
+COPY package.json ./
 
-# Install dependencies without running postinstall scripts
-RUN npm install --legacy-peer-deps --ignore-scripts
+# Install dependencies from scratch for the container's architecture
+RUN rm -f package-lock.json && npm install --legacy-peer-deps
 
 # Copy project files
 COPY . .
 
-# Explicitly run nuxt prepare and then build
-RUN npx nuxt prepare
+# Build the application
 RUN npm run build
 
 # Production stage
