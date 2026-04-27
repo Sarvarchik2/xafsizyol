@@ -1,18 +1,19 @@
 # Build stage
-FROM node:18-alpine AS build-stage
+FROM node:18 AS build-stage
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
+# Install dependencies without running postinstall scripts
+RUN npm install --legacy-peer-deps --ignore-scripts
 
 # Copy project files
 COPY . .
 
-# Build the Nuxt application
+# Explicitly run nuxt prepare and then build
+RUN npx nuxt prepare
 RUN npm run build
 
 # Production stage
