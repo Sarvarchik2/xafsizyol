@@ -27,7 +27,7 @@ export const useReportsStore = defineStore('reports', {
     }),
     actions: {
         async fetchReports() {
-            if (this.loading) return
+            if (this.loading) return   // уже грузится — не дублируем запрос
             this.loading = true
             this.error = null
             try {

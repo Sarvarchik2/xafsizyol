@@ -295,15 +295,31 @@ const searchAddress = async () => {
 
 const triggerFileInput = () => fileInput.value.click()
 
-const handleFileChange = (e) => {
-  const file = e.target.files[0]
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      form.value.photo = event.target.result
+// Сжимаем фото до max 800px и quality 0.7 перед отправкой
+const compressImage = (file) => new Promise((resolve) => {
+  const img = new Image()
+  const url = URL.createObjectURL(file)
+  img.onload = () => {
+    const maxSize = 800
+    let { width, height } = img
+    if (width > maxSize || height > maxSize) {
+      if (width > height) { height = Math.round(height * maxSize / width); width = maxSize }
+      else { width = Math.round(width * maxSize / height); height = maxSize }
     }
-    reader.readAsDataURL(file)
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+    URL.revokeObjectURL(url)
+    resolve(canvas.toDataURL('image/jpeg', 0.7))
   }
+  img.src = url
+})
+
+const handleFileChange = async (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  form.value.photo = await compressImage(file)
 }
 
 const nextStep = () => {

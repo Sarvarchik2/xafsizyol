@@ -32,12 +32,12 @@
         </div>
       </header>
 
-      <!-- Loading -->
-      <div v-if="reportsStore.loading" class="flex justify-center py-20">
+      <!-- Loading indicator (только маленький, не блокирующий) -->
+      <div v-if="reportsStore.loading && userReports.length === 0" class="flex justify-center py-20">
         <div class="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
       </div>
 
-      <div v-else-if="userReports.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+      <div v-else-if="!reportsStore.loading && userReports.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
         <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
           <LucideClipboardList class="w-10 h-10 text-gray-300" />
         </div>
@@ -100,25 +100,22 @@ const reportsStore = useReportsStore()
 const user = ref(null)
 const phoneNumber = ref('')
 
-onMounted(async () => {
-  if (process.client) {
-    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-      user.value = window.Telegram.WebApp.initDataUnsafe.user
-    } else {
-      user.value = {
-        id: 'test_user_123',
-        first_name: 'Test',
-        last_name: 'User',
-        username: 'testuser',
-        photo_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80'
-      }
-    }
-    await reportsStore.fetchReports()
-    const lastReport = reportsStore.getUserReports(user.value?.id?.toString()).find(r => r.phoneNumber)
-    if (lastReport?.phoneNumber) {
-      phoneNumber.value = lastReport.phoneNumber
-    }
+onMounted(() => {
+  if (!process.client) return
+
+  user.value = window.Telegram?.WebApp?.initDataUnsafe?.user || {
+    id: 'test_user_123',
+    first_name: 'Test',
+    last_name: 'User',
+    username: 'testuser',
+    photo_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80'
   }
+
+  // Показываем данные из стора сразу, обновляем в фоне
+  reportsStore.fetchReports().then(() => {
+    const lastReport = reportsStore.getUserReports(user.value?.id?.toString()).find(r => r.phoneNumber)
+    if (lastReport?.phoneNumber) phoneNumber.value = lastReport.phoneNumber
+  })
 })
 
 const userReports = computed(() => {
