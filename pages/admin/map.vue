@@ -176,6 +176,11 @@ onMounted(async () => {
   await reportsStore.fetchReports()
   if (!process.client) return
 
+  await nextTick() // ждём пока DOM отрисует div#admin-map
+
+  const mapEl = document.getElementById('admin-map')
+  if (!mapEl) return
+
   const L = await import('leaflet')
   adminMap = L.map('admin-map', { zoomControl: true, attributionControl: false })
     .setView([41.2995, 69.2401], 12)

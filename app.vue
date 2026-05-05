@@ -6,9 +6,12 @@
 
 <script setup>
 onMounted(() => {
+  // Чистим старый персистированный стор (мог сохранить данные неправильного формата)
+  try { localStorage.removeItem('reports') } catch {}
+
   if (!window.Telegram?.WebApp) return
   const tg = window.Telegram.WebApp
-  tg.ready()    // говорим Telegram что приложение загружено
-  tg.expand()   // раскрываем на весь экран
+  tg.ready()
+  tg.expand()
 })
 </script>

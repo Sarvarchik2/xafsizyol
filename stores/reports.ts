@@ -19,20 +19,25 @@ export interface Report {
 
 const API = '/api'
 
+const toArray = (v: unknown): Report[] =>
+    Array.isArray(v) ? (v as Report[]).filter(r => r && typeof r.id === 'string') : []
+
 export const useReportsStore = defineStore('reports', {
     state: () => ({
         reports: [] as Report[],
         loading: false,
         error: null as string | null,
     }),
+    // Персистентность отключена — данные всегда берём с сервера
+    persist: false,
     actions: {
         async fetchReports() {
-            if (this.loading) return   // уже грузится — не дублируем запрос
+            if (this.loading) return
             this.loading = true
             this.error = null
             try {
                 const data = await $fetch<Report[]>(`${API}/reports`)
-                this.reports = data
+                this.reports = toArray(data)
             } catch (e: any) {
                 this.error = 'Failed to fetch reports'
                 console.error('[Store] fetchReports:', e)
@@ -46,6 +51,7 @@ export const useReportsStore = defineStore('reports', {
                 method: 'POST',
                 body: report,
             })
+            if (!Array.isArray(this.reports)) this.reports = []
             this.reports.unshift(newReport)
             return newReport
         },
@@ -64,7 +70,7 @@ export const useReportsStore = defineStore('reports', {
         },
 
         getUserReports(userId: string) {
-            return this.reports.filter(r => r.userId === userId)
+            return toArray(this.reports).filter(r => r.userId === userId)
         },
 
         async updateReportStatus(reportId: string, status: string) {
