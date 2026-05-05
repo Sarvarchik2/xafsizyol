@@ -5,5 +5,10 @@
 </template>
 
 <script setup>
-// Main entry point using file-based routing
+onMounted(() => {
+  if (!window.Telegram?.WebApp) return
+  const tg = window.Telegram.WebApp
+  tg.ready()    // говорим Telegram что приложение загружено
+  tg.expand()   // раскрываем на весь экран
+})
 </script>

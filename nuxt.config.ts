@@ -40,6 +40,10 @@ export default defineNuxtConfig({
         { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0' },
         { name: 'description', content: 'Community driven road pothole reporting app' }
       ],
+      script: [
+        // Telegram Web App SDK — обязательно первым
+        { src: 'https://telegram.org/js/telegram-web-app.js', defer: false }
+      ],
       link: [
         { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap' },
         { rel: 'stylesheet', href: 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' }
