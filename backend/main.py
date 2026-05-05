@@ -1,5 +1,7 @@
 import os
 import hmac
+from dotenv import load_dotenv
+load_dotenv()
 import hashlib
 import uuid
 from datetime import datetime, timedelta
@@ -12,7 +14,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8548769528:AAHKsA7wWCr8c4DVOy43kCTs7qTOy0uywyc")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "")
 
