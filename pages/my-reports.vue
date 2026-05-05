@@ -15,7 +15,7 @@
             <p class="text-xs font-bold text-primary">@{{ user?.username || 'testuser' }}</p>
             <p class="text-sm text-airbnb-gray flex items-center gap-1.5 mt-0.5 truncate">
               <LucidePhone class="w-3.5 h-3.5" />
-              <span class="font-semibold">{{ phoneNumber || '3324234234' }}</span>
+              <span class="font-semibold">{{ phoneNumber || '—' }}</span>
             </p>
           </div>
         </div>
@@ -32,7 +32,12 @@
         </div>
       </header>
 
-      <div v-if="userReports.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+      <!-- Loading -->
+      <div v-if="reportsStore.loading" class="flex justify-center py-20">
+        <div class="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+      </div>
+
+      <div v-else-if="userReports.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
         <div class="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
           <LucideClipboardList class="w-10 h-10 text-gray-300" />
         </div>
@@ -45,7 +50,7 @@
           class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
           <div class="flex gap-4">
             <div class="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-              <img v-if="report.photo" :src="report.photo" 
+              <img v-if="report.photo" :src="report.photo"
                 @error="(e) => e.target.src = 'https://picsum.photos/seed/broken/600/400'"
                 class="w-full h-full object-cover" />
               <div v-else class="w-full h-full flex items-center justify-center">
@@ -95,13 +100,11 @@ const reportsStore = useReportsStore()
 const user = ref(null)
 const phoneNumber = ref('')
 
-onMounted(() => {
+onMounted(async () => {
   if (process.client) {
     if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-      const tg = window.Telegram.WebApp
-      user.value = tg.initDataUnsafe.user
+      user.value = window.Telegram.WebApp.initDataUnsafe.user
     } else {
-      // Mock test user fallback
       user.value = {
         id: 'test_user_123',
         first_name: 'Test',
@@ -110,16 +113,14 @@ onMounted(() => {
         photo_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80'
       }
     }
-    
-    // Try to get phone from the last report if available
-    const lastReport = reportsStore.reports.find(r => r.userId === user.value?.id?.toString())
+    await reportsStore.fetchReports()
+    const lastReport = reportsStore.getUserReports(user.value?.id?.toString()).find(r => r.phoneNumber)
     if (lastReport?.phoneNumber) {
       phoneNumber.value = lastReport.phoneNumber
     }
   }
 })
 
-// For MVP we can use a mock user ID or Telegram ID if available
 const userReports = computed(() => {
   if (!user.value?.id) return []
   return reportsStore.getUserReports(user.value.id.toString())

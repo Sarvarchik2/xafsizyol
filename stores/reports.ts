@@ -19,78 +19,73 @@ export interface Report {
 
 export const useReportsStore = defineStore('reports', {
     state: () => ({
-        reports: [
-            {
-                id: 'mock1',
-                photo: 'https://picsum.photos/seed/pothole1/600/400',
-                lat: 41.3115,
-                lng: 69.2401,
-                address: 'Amir Temur shoh ko\'chasi, Tashkent',
-                city: 'Tashkent',
-                district: 'Yunusabad',
-                severity: 'Critical',
-                description: 'A deep pothole in the middle lane, very dangerous for tires.',
-                createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-                status: 'Pending',
-                userId: 'test_user_123',
-                phoneNumber: '+998901234567',
-                votes: 12
-            },
-            {
-                id: 'mock2',
-                photo: 'https://picsum.photos/seed/pothole2/600/400',
-                lat: 41.2995,
-                lng: 69.2601,
-                address: 'Shota Rustaveli ko\'chasi, Tashkent',
-                city: 'Tashkent',
-                district: 'Yakkasaroy',
-                severity: 'Medium',
-                description: 'Several medium potholes near the bus stop.',
-                createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-                status: 'In Progress',
-                userId: 'test_user_123',
-                phoneNumber: '+998901234567',
-                votes: 5
-            },
-            {
-                id: 'mock3',
-                photo: 'https://picsum.photos/seed/pothole3/600/400',
-                lat: 41.2850,
-                lng: 69.2250,
-                address: 'Chilonzor ko\'chasi, Tashkent',
-                city: 'Tashkent',
-                district: 'Chilonzor',
-                severity: 'Small',
-                description: 'Small cracks turning into a pothole.',
-                createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
-                status: 'Fixed',
-                userId: 'other_user',
-                phoneNumber: '+998998765432',
-                votes: 2
-            }
-        ] as Report[]
+        reports: [] as Report[],
+        loading: false,
+        error: null as string | null,
     }),
+    getters: {
+        sortedByVotes: (state) =>
+            [...state.reports].sort((a, b) => (b.votes || 0) - (a.votes || 0)),
+    },
     actions: {
-        addReport(report: Omit<Report, 'id' | 'createdAt' | 'status'>) {
-            const newReport: Report = {
-                ...report,
-                id: Math.random().toString(36).substring(2, 9),
-                createdAt: new Date().toISOString(),
-                status: 'Pending',
-                votes: 0
+        async fetchReports() {
+            if (this.loading) return
+            this.loading = true
+            this.error = null
+            try {
+                const config = useRuntimeConfig()
+                const apiBase = config.public.apiBase as string
+                const data = await $fetch<Report[]>(`${apiBase}/api/reports`)
+                this.reports = data
+            } catch (e: any) {
+                this.error = 'Failed to fetch reports'
+                console.error('[Store] fetchReports error:', e)
+            } finally {
+                this.loading = false
             }
+        },
+
+        async addReport(report: Omit<Report, 'id' | 'createdAt' | 'status' | 'votes'>) {
+            const config = useRuntimeConfig()
+            const apiBase = config.public.apiBase as string
+            const newReport = await $fetch<Report>(`${apiBase}/api/reports`, {
+                method: 'POST',
+                body: report,
+            })
             this.reports.unshift(newReport)
             return newReport
         },
-        voteReport(reportId: string) {
-            const report = this.reports.find(r => r.id === reportId)
-            if (report) {
-                report.votes++
+
+        async voteReport(reportId: string) {
+            const config = useRuntimeConfig()
+            const apiBase = config.public.apiBase as string
+            try {
+                const updated = await $fetch<Report>(`${apiBase}/api/reports/${reportId}/vote`, {
+                    method: 'POST',
+                })
+                const idx = this.reports.findIndex(r => r.id === reportId)
+                if (idx !== -1) this.reports[idx] = updated
+            } catch (e) {
+                // optimistic fallback
+                const report = this.reports.find(r => r.id === reportId)
+                if (report) report.votes++
             }
         },
+
         getUserReports(userId: string) {
             return this.reports.filter(r => r.userId === userId)
-        }
+        },
+
+        async updateReportStatus(reportId: string, status: string) {
+            const config = useRuntimeConfig()
+            const apiBase = config.public.apiBase as string
+            const updated = await $fetch<Report>(
+                `${apiBase}/api/reports/${reportId}/status?status=${encodeURIComponent(status)}`,
+                { method: 'PATCH' }
+            )
+            const idx = this.reports.findIndex(r => r.id === reportId)
+            if (idx !== -1) this.reports[idx] = updated
+            return updated
+        },
     },
-    persist: true
 })

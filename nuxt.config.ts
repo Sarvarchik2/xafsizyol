@@ -9,6 +9,19 @@ export default defineNuxtConfig({
     '@nuxtjs/i18n',
     '@pinia-plugin-persistedstate/nuxt'
   ],
+  runtimeConfig: {
+    public: {
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000'
+    }
+  },
+  nitro: {
+    devProxy: {
+      '/api': {
+        target: (process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8000') + '/api',
+        changeOrigin: true,
+      }
+    }
+  },
   i18n: {
     locales: [
       { code: 'uz', iso: 'uz-UZ', name: 'O\'zbekcha', file: 'uz.json' },

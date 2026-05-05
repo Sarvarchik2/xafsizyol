@@ -321,20 +321,12 @@ const prevStep = () => {
 const submitReport = async () => {
   loading.value = true
   try {
-    await $fetch('/api/reports', {
-      method: 'POST',
-      body: {
-        ...form.value,
-        userId: window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || 'test_user_123'
-      }
-    })
-
-    // Add to local store as well for immediate feedback in "My Reports"
-    reportsStore.addReport({
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || 'test_user_123'
+    await reportsStore.addReport({
       ...form.value,
-      userId: window.Telegram?.WebApp?.initDataUnsafe?.user?.id?.toString() || 'test_user_123'
+      userId,
+      votes: 0,
     })
-
     alert(t('status.sent'))
     navigateTo('/my-reports')
   } catch (err) {

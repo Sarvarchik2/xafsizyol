@@ -13,6 +13,10 @@ import { useReportsStore } from '~/stores/reports'
 const reportsStore = useReportsStore()
 const route = useRoute()
 
+onMounted(() => {
+  reportsStore.fetchReports()
+})
+
 const handleReport = () => {
   navigateTo('/report')
 }

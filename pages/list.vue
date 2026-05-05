@@ -28,8 +28,13 @@
         </div>
       </div>
 
+      <!-- Loading -->
+      <div v-if="reportsStore.loading" class="flex justify-center py-20">
+        <div class="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+      </div>
+
       <!-- Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10 mb-20">
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10 mb-20">
         <PotholeCard v-for="item in filteredPotholes" :key="item.id" :pothole="item" />
       </div>
     </div>
@@ -45,6 +50,10 @@ const reportsStore = useReportsStore()
 
 const cityFilter = ref('')
 const districtFilter = ref('')
+
+onMounted(() => {
+  reportsStore.fetchReports()
+})
 
 const categories = computed(() => [
   { id: 'all', label: t('tags.all'), icon: LucideAlertCircle },
@@ -63,21 +72,17 @@ const filteredPotholes = computed(() => {
   } else if (activeCategory.value === 'critical') {
     list = list.filter(p => p.severity === 'Critical')
   } else if (activeCategory.value === 'recent') {
-    // Sort by date and take first 10
     list = list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   }
 
-  // Filter by city
   if (cityFilter.value) {
     list = list.filter(p => p.city?.toLowerCase().includes(cityFilter.value.toLowerCase()))
   }
 
-  // Filter by district
   if (districtFilter.value) {
     list = list.filter(p => p.district?.toLowerCase().includes(districtFilter.value.toLowerCase()))
   }
 
-  // Also sort by votes (social proof requirement)
   return list.sort((a, b) => (b.votes || 0) - (a.votes || 0))
 })
 </script>

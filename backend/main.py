@@ -1,15 +1,25 @@
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
-from enum import Enum
+import os
+import hmac
+import hashlib
 import uuid
 from datetime import datetime, timedelta
+from enum import Enum
+from typing import List, Optional
+from urllib.parse import parse_qsl
+
+import httpx
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8548769528:AAHKsA7wWCr8c4DVOy43kCTs7qTOy0uywyc")
+TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "")
 
 app = FastAPI(
     title="Xafsizyol API",
-    description="Full Backend API for Xafsizyol pothole reporting project",
-    version="1.0.0"
+    description="Backend API for Xafsizyol pothole reporting project",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -20,15 +30,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 class Severity(str, Enum):
     Small = "Small"
     Medium = "Medium"
     Critical = "Critical"
 
+
 class Status(str, Enum):
     Pending = "Pending"
     InProgress = "In Progress"
     Fixed = "Fixed"
+
 
 class ReportCreate(BaseModel):
     photo: Optional[str] = None
@@ -42,13 +55,18 @@ class ReportCreate(BaseModel):
     userId: Optional[str] = None
     phoneNumber: Optional[str] = None
 
+
 class Report(ReportCreate):
     id: str
     createdAt: str
     status: Status
     votes: int
 
-# In-memory database with mock data mirroring frontend 'reports.ts'
+
+class ValidateRequest(BaseModel):
+    initData: str
+
+
 reports_db: List[Report] = [
     Report(
         id="mock1",
@@ -64,7 +82,7 @@ reports_db: List[Report] = [
         status=Status.Pending,
         userId="test_user_123",
         phoneNumber="+998901234567",
-        votes=12
+        votes=12,
     ),
     Report(
         id="mock2",
@@ -80,7 +98,7 @@ reports_db: List[Report] = [
         status=Status.InProgress,
         userId="test_user_123",
         phoneNumber="+998901234567",
-        votes=5
+        votes=5,
     ),
     Report(
         id="mock3",
@@ -96,73 +114,154 @@ reports_db: List[Report] = [
         status=Status.Fixed,
         userId="other_user",
         phoneNumber="+998998765432",
-        votes=2
-    )
+        votes=2,
+    ),
 ]
 
-@app.get("/", summary="Root endpoint")
-def read_root():
-    return {"message": "Welcome to Xafsizyol Full API!"}
 
-@app.get("/api/reports", response_model=List[Report], summary="Get all reports")
+# ─── Telegram helpers ───────────────────────────────────────────────────────
+
+async def send_telegram_message(chat_id: str, text: str) -> bool:
+    if not chat_id:
+        return False
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.post(
+                f"{TELEGRAM_API}/sendMessage",
+                json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
+            )
+            return resp.status_code == 200
+    except Exception as e:
+        print(f"[Telegram] send error: {e}")
+        return False
+
+
+def validate_init_data(init_data: str) -> bool:
+    """Validate Telegram Web App initData via HMAC-SHA256."""
+    try:
+        parsed = dict(parse_qsl(init_data, strict_parsing=True))
+        received_hash = parsed.pop("hash", None)
+        if not received_hash:
+            return False
+
+        data_check_string = "\n".join(
+            f"{k}={v}" for k, v in sorted(parsed.items())
+        )
+
+        secret_key = hmac.new(
+            b"WebAppData",
+            TELEGRAM_BOT_TOKEN.encode(),
+            hashlib.sha256,
+        ).digest()
+
+        computed = hmac.new(
+            secret_key,
+            data_check_string.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+        return hmac.compare_digest(computed, received_hash)
+    except Exception:
+        return False
+
+
+# ─── Routes ─────────────────────────────────────────────────────────────────
+
+@app.get("/", summary="Health check")
+def read_root():
+    return {"status": "ok", "message": "Xafsizyol API v2"}
+
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "reports": len(reports_db)}
+
+
+@app.post("/api/auth/validate", summary="Validate Telegram Web App initData")
+def validate_telegram(body: ValidateRequest):
+    if validate_init_data(body.initData):
+        return {"valid": True}
+    raise HTTPException(status_code=401, detail="Invalid Telegram initData")
+
+
+@app.get("/api/reports", response_model=List[Report])
 def get_all_reports():
-    """
-    Returns a list of all reports (potholes), ordered by newest first.
-    """
-    # Sort by createdAt descending
     return sorted(reports_db, key=lambda r: r.createdAt, reverse=True)
 
-@app.get("/api/reports/user/{user_id}", response_model=List[Report], summary="Get reports by user ID")
+
+@app.get("/api/reports/user/{user_id}", response_model=List[Report])
 def get_user_reports(user_id: str):
-    """
-    Returns a list of reports created by a specific user.
-    """
     user_reports = [r for r in reports_db if r.userId == user_id]
     return sorted(user_reports, key=lambda r: r.createdAt, reverse=True)
 
-@app.get("/api/reports/{report_id}", response_model=Report, summary="Get a specific report")
+
+@app.get("/api/reports/{report_id}", response_model=Report)
 def get_report(report_id: str):
-    """
-    Returns the details of a specific report by ID.
-    """
     for r in reports_db:
         if r.id == report_id:
             return r
     raise HTTPException(status_code=404, detail="Report not found")
 
-@app.post("/api/reports", response_model=Report, summary="Create a new report")
-def create_report(report_in: ReportCreate):
-    """
-    Submit a new pothole report.
-    """
+
+@app.post("/api/reports", response_model=Report)
+async def create_report(report_in: ReportCreate):
     new_report = Report(
         id=uuid.uuid4().hex[:8],
         createdAt=datetime.utcnow().isoformat() + "Z",
         status=Status.Pending,
         votes=0,
-        **report_in.dict()
+        **report_in.model_dump(),
     )
     reports_db.insert(0, new_report)
+
+    severity_emoji = {"Small": "🟡", "Medium": "🟠", "Critical": "🔴"}.get(
+        new_report.severity.value, "⚪"
+    )
+    msg = (
+        f"<b>Yangi muammo xabari!</b>\n\n"
+        f"{severity_emoji} <b>Daraja:</b> {new_report.severity.value}\n"
+        f"📍 <b>Manzil:</b> {new_report.address}\n"
+        f"📝 <b>Tavsif:</b> {new_report.description}\n"
+        f"🆔 <b>ID:</b> {new_report.id}"
+    )
+
+    # Notify the reporter
+    if new_report.userId and new_report.userId.isdigit():
+        await send_telegram_message(new_report.userId, msg)
+
+    # Notify admin if configured
+    if ADMIN_CHAT_ID:
+        await send_telegram_message(ADMIN_CHAT_ID, msg)
+
     return new_report
 
-@app.post("/api/reports/{report_id}/vote", response_model=Report, summary="Vote on a report")
+
+@app.post("/api/reports/{report_id}/vote", response_model=Report)
 def vote_report(report_id: str):
-    """
-    Increment the vote count for a specific report.
-    """
     for r in reports_db:
         if r.id == report_id:
             r.votes += 1
             return r
     raise HTTPException(status_code=404, detail="Report not found")
 
-@app.patch("/api/reports/{report_id}/status", response_model=Report, summary="Update report status (Admin)")
-def update_report_status(report_id: str, status: Status):
-    """
-    Update the status of a report (e.g. from Pending to Fixed).
-    """
+
+@app.patch("/api/reports/{report_id}/status", response_model=Report)
+async def update_report_status(report_id: str, status: Status):
     for r in reports_db:
         if r.id == report_id:
             r.status = status
+            # Notify user about status change
+            status_labels = {
+                Status.Pending: "⏳ Kutilmoqda",
+                Status.InProgress: "🔧 Ko'rib chiqilmoqda",
+                Status.Fixed: "✅ Bajarildi",
+            }
+            if r.userId and r.userId.isdigit():
+                msg = (
+                    f"<b>Xabaringiz holati yangilandi!</b>\n\n"
+                    f"📍 {r.address}\n"
+                    f"📌 Yangi holat: {status_labels.get(status, status.value)}"
+                )
+                await send_telegram_message(r.userId, msg)
             return r
     raise HTTPException(status_code=404, detail="Report not found")
