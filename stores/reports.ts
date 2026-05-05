@@ -17,38 +17,32 @@ export interface Report {
     votes: number
 }
 
+const API = '/api'
+
 export const useReportsStore = defineStore('reports', {
     state: () => ({
         reports: [] as Report[],
         loading: false,
         error: null as string | null,
     }),
-    getters: {
-        sortedByVotes: (state) =>
-            [...state.reports].sort((a, b) => (b.votes || 0) - (a.votes || 0)),
-    },
     actions: {
         async fetchReports() {
             if (this.loading) return
             this.loading = true
             this.error = null
             try {
-                const config = useRuntimeConfig()
-                const apiBase = config.public.apiBase as string
-                const data = await $fetch<Report[]>(`${apiBase}/api/reports`)
+                const data = await $fetch<Report[]>(`${API}/reports`)
                 this.reports = data
             } catch (e: any) {
                 this.error = 'Failed to fetch reports'
-                console.error('[Store] fetchReports error:', e)
+                console.error('[Store] fetchReports:', e)
             } finally {
                 this.loading = false
             }
         },
 
         async addReport(report: Omit<Report, 'id' | 'createdAt' | 'status' | 'votes'>) {
-            const config = useRuntimeConfig()
-            const apiBase = config.public.apiBase as string
-            const newReport = await $fetch<Report>(`${apiBase}/api/reports`, {
+            const newReport = await $fetch<Report>(`${API}/reports`, {
                 method: 'POST',
                 body: report,
             })
@@ -57,16 +51,13 @@ export const useReportsStore = defineStore('reports', {
         },
 
         async voteReport(reportId: string) {
-            const config = useRuntimeConfig()
-            const apiBase = config.public.apiBase as string
             try {
-                const updated = await $fetch<Report>(`${apiBase}/api/reports/${reportId}/vote`, {
+                const updated = await $fetch<Report>(`${API}/reports/${reportId}/vote`, {
                     method: 'POST',
                 })
                 const idx = this.reports.findIndex(r => r.id === reportId)
                 if (idx !== -1) this.reports[idx] = updated
-            } catch (e) {
-                // optimistic fallback
+            } catch {
                 const report = this.reports.find(r => r.id === reportId)
                 if (report) report.votes++
             }
@@ -77,10 +68,8 @@ export const useReportsStore = defineStore('reports', {
         },
 
         async updateReportStatus(reportId: string, status: string) {
-            const config = useRuntimeConfig()
-            const apiBase = config.public.apiBase as string
             const updated = await $fetch<Report>(
-                `${apiBase}/api/reports/${reportId}/status?status=${encodeURIComponent(status)}`,
+                `${API}/reports/${reportId}/status?status=${encodeURIComponent(status)}`,
                 { method: 'PATCH' }
             )
             const idx = this.reports.findIndex(r => r.id === reportId)
