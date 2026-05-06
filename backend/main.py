@@ -22,6 +22,29 @@ TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "")
 BACKEND_URL = os.getenv("BACKEND_URL") or os.getenv("NUXT_PUBLIC_API_BASE", "")
 WEB_APP_URL = os.getenv("WEB_APP_URL", "")
+OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")
+
+SYSTEM_PROMPT = """Siz Xafsizyol ilovasining Telegram-yordamchisisiz. Faqat ushbu ilova haqida javob bering.
+
+Xafsizyol haqida:
+- Xafsizyol — O'zbekistonda yo'llardagi chuqurlar (yamalar) haqida xabar berish tizimi
+- Foydalanuvchilar rasmga olish, xaritada belgilash orqali chuqur haqida xabar berishadi
+- Har bir xabar: rasm, joylashuv, manzil, jiddiylik (Kichik/O'rta/Kritik), tavsif, telefon
+- Barcha xabarlar interaktiv xaritada ko'rinadi
+- Filtrlar: Hammasi, Xavfli (kritik), Yaqinda (yangi), Tuzatilgan
+- Xabar holatlari: Kutilmoqda → Ko'rib chiqilmoqda → Bajarildi
+- Foydalanuvchilar xabarlarga ovoz berishlari mumkin
+- Ilova Telegram Mini App sifatida ishlaydi
+
+Qo'llanilishi:
+1. Botda /start bosing
+2. "Muammoni xabar qilish" tugmasi orqali mini-ilovani oching
+3. "+" tugmasi bilan yangi chuqur haqida xabar bering
+4. Rasm, joylashuv, jiddiylik va tavsifni to'ldiring
+5. Yuborish — xabar xaritada ko'rinadi
+
+Bog'liq bo'lmagan savollarda: "Men faqat Xafsizyol ilovasi haqida yordam bera olaman" deb javob bering.
+Foydalanuvchi tilida javob bering (o'zbek, rus yoki ingliz). Qisqa va aniq javob bering."""
 DB_PATH = os.path.join(os.path.dirname(__file__), "reports.db")
 
 app = FastAPI(title="Xafsizyol API", version="3.0.0")
@@ -276,6 +299,30 @@ def vote_report(report_id: str):
     return row_to_report(row)
 
 
+async def ask_ollama(user_message: str) -> str:
+    if not OLLAMA_API_KEY:
+        return "⚠️ AI yordamchi hozir mavjud emas."
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                "https://api.ollama.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"},
+                json={
+                    "model": "llama3.2",
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": user_message},
+                    ],
+                    "stream": False,
+                },
+            )
+        data = r.json()
+        return data["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"[Ollama] error: {e}")
+        return "⚠️ Kechirasiz, xatolik yuz berdi. Qayta urinib ko'ring."
+
+
 @app.post("/webhook")
 async def telegram_webhook(request: Request):
     try:
@@ -296,6 +343,7 @@ async def telegram_webhook(request: Request):
             f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
             f"<b>Xafsizyol</b> botiga xush kelibsiz! 🚗\n\n"
             f"Bu bot orqali yo'llardagi chuqurlar va muammolarni xabar qilishingiz mumkin.\n\n"
+            f"❓ Savol bo'lsa — yozing, men yordam beraman!\n\n"
             f"Boshlash uchun quyidagi tugmani bosing 👇"
         )
         markup = None
@@ -306,6 +354,11 @@ async def telegram_webhook(request: Request):
                 ]]
             }
         await send_telegram_message(chat_id, greeting, markup)
+
+    elif text and not text.startswith("/"):
+        # AI response via Ollama
+        reply = await ask_ollama(text)
+        await send_telegram_message(chat_id, reply)
 
     return {"ok": True}
 
