@@ -12,6 +12,13 @@ pkill -f "uvicorn main:app" 2>/dev/null && echo "   uvicorn остановлен
 pkill -f "ngrok" 2>/dev/null && echo "   ngrok остановлен" || true
 sleep 1
 
+# --- Загружаем переменные окружения ---
+if [ -f "$ROOT/.env" ]; then
+  set -a
+  source "$ROOT/.env"
+  set +a
+fi
+
 # --- Бекенд ---
 echo "▶  Бекенд (FastAPI :8000)"
 cd "$ROOT/backend"
