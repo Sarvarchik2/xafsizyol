@@ -100,6 +100,18 @@ const reportsStore = useReportsStore()
 const user = ref(null)
 const phoneNumber = ref('')
 
+const { data: fetchedReports, refresh } = await useAsyncData(
+  'all-reports',
+  () => $fetch('/api/reports'),
+  { server: false }
+)
+
+watchEffect(() => {
+  if (Array.isArray(fetchedReports.value) && fetchedReports.value.length > 0) {
+    reportsStore.reports = fetchedReports.value
+  }
+})
+
 onMounted(() => {
   if (!process.client) return
 
@@ -111,8 +123,7 @@ onMounted(() => {
     photo_url: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80'
   }
 
-  // Показываем данные из стора сразу, обновляем в фоне
-  reportsStore.fetchReports().then(() => {
+  refresh().then(() => {
     const lastReport = reportsStore.getUserReports(user.value?.id?.toString()).find(r => r.phoneNumber)
     if (lastReport?.phoneNumber) phoneNumber.value = lastReport.phoneNumber
   })

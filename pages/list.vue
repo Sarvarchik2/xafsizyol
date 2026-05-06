@@ -51,9 +51,19 @@ const reportsStore = useReportsStore()
 const cityFilter = ref('')
 const districtFilter = ref('')
 
-onMounted(() => {
-  reportsStore.fetchReports()
+const { data: fetchedReports, refresh } = await useAsyncData(
+  'all-reports',
+  () => $fetch('/api/reports'),
+  { server: false }
+)
+
+watchEffect(() => {
+  if (Array.isArray(fetchedReports.value) && fetchedReports.value.length > 0) {
+    reportsStore.reports = fetchedReports.value
+  }
 })
+
+onMounted(() => refresh())
 
 const categories = computed(() => [
   { id: 'all', label: t('tags.all'), icon: LucideAlertCircle },
