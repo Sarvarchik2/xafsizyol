@@ -20,7 +20,7 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "")
-BACKEND_URL = os.getenv("BACKEND_URL", "")
+BACKEND_URL = os.getenv("BACKEND_URL") or os.getenv("NUXT_PUBLIC_API_BASE", "")
 WEB_APP_URL = os.getenv("WEB_APP_URL", "")
 DB_PATH = os.path.join(os.path.dirname(__file__), "reports.db")
 
