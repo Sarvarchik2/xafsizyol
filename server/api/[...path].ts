@@ -14,7 +14,10 @@ export default defineEventHandler(async (event) => {
     }
 
     try {
-        return await $fetch(url, { method, body, query })
+        return await $fetch(url, {
+            method, body, query,
+            headers: { 'ngrok-skip-browser-warning': 'true' }
+        })
     } catch (error: any) {
         const status = error?.response?.status || 500
         const data = error?.data || { detail: 'Backend error' }
