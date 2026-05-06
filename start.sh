@@ -33,6 +33,15 @@ ngrok http --url=araceli-televisionary-dusti.ngrok-free.dev 8000 &
 NGROK_PID=$!
 sleep 3
 
+# --- Регистрация Telegram webhook ---
+echo "▶  Регистрация Telegram webhook..."
+WEBHOOK_RESP=$(curl -s "http://localhost:8000/api/setup-webhook")
+if echo "$WEBHOOK_RESP" | grep -q '"ok":true'; then
+  echo "✅ Webhook зарегистрирован"
+else
+  echo "⚠️  Webhook: $WEBHOOK_RESP"
+fi
+
 echo ""
 echo "✅ Бекенд:   http://localhost:8000"
 echo "✅ Туннель:  https://araceli-televisionary-dusti.ngrok-free.dev"

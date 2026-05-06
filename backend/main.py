@@ -11,7 +11,7 @@ from urllib.parse import parse_qsl
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -20,6 +20,8 @@ load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "")
+BACKEND_URL = os.getenv("BACKEND_URL", "")
+WEB_APP_URL = os.getenv("WEB_APP_URL", "")
 DB_PATH = os.path.join(os.path.dirname(__file__), "reports.db")
 
 app = FastAPI(title="Xafsizyol API", version="3.0.0")
@@ -145,15 +147,15 @@ def startup():
 
 # ─── Telegram helpers ────────────────────────────────────────────────────────
 
-async def send_telegram_message(chat_id: str, text: str) -> bool:
+async def send_telegram_message(chat_id: str, text: str, reply_markup: dict | None = None) -> bool:
     if not chat_id or not TELEGRAM_BOT_TOKEN:
         return False
     try:
+        payload: dict = {"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
         async with httpx.AsyncClient(timeout=5) as client:
-            r = await client.post(
-                f"{TELEGRAM_API}/sendMessage",
-                json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"},
-            )
+            r = await client.post(f"{TELEGRAM_API}/sendMessage", json=payload)
             return r.status_code == 200
     except Exception as e:
         print(f"[Telegram] error: {e}")
@@ -272,6 +274,55 @@ def vote_report(report_id: str):
             raise HTTPException(status_code=404, detail="Report not found")
         row = conn.execute("SELECT * FROM reports WHERE id=?", (report_id,)).fetchone()
     return row_to_report(row)
+
+
+@app.post("/webhook")
+async def telegram_webhook(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        return {"ok": True}
+
+    message = data.get("message", {})
+    if not message:
+        return {"ok": True}
+
+    chat_id = str(message.get("chat", {}).get("id", ""))
+    text = message.get("text", "")
+    first_name = message.get("from", {}).get("first_name", "Foydalanuvchi")
+
+    if text == "/start":
+        greeting = (
+            f"Assalomu alaykum, <b>{first_name}</b>! 👋\n\n"
+            f"<b>Xafsizyol</b> botiga xush kelibsiz! 🚗\n\n"
+            f"Bu bot orqali yo'llardagi chuqurlar va muammolarni xabar qilishingiz mumkin.\n\n"
+            f"Boshlash uchun quyidagi tugmani bosing 👇"
+        )
+        markup = None
+        if WEB_APP_URL:
+            markup = {
+                "inline_keyboard": [[
+                    {"text": "🗺 Muammoni xabar qilish", "web_app": {"url": WEB_APP_URL}}
+                ]]
+            }
+        await send_telegram_message(chat_id, greeting, markup)
+
+    return {"ok": True}
+
+
+@app.get("/api/setup-webhook")
+async def setup_webhook():
+    if not BACKEND_URL:
+        raise HTTPException(status_code=400, detail="BACKEND_URL not set in environment")
+    webhook_url = f"{BACKEND_URL}/webhook"
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post(
+            f"{TELEGRAM_API}/setWebhook",
+            json={"url": webhook_url, "drop_pending_updates": True},
+        )
+    result = r.json()
+    print(f"[Webhook] setWebhook → {result}")
+    return result
 
 
 @app.patch("/api/reports/{report_id}/status", response_model=Report)
