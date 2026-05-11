@@ -23,6 +23,7 @@ const toArray = (v: unknown): Report[] =>
 export const useReportsStore = defineStore('reports', () => {
     const config = useRuntimeConfig()
     const API = `${config.public.apiBase}/api`
+    const apiFetch = $fetch.create({ headers: { 'ngrok-skip-browser-warning': 'true' } })
 
     const reports = ref<Report[]>([])
     const loading = ref(false)
@@ -33,7 +34,7 @@ export const useReportsStore = defineStore('reports', () => {
         loading.value = true
         error.value = null
         try {
-            const data = await $fetch<Report[]>(`${API}/reports`)
+            const data = await apiFetch<Report[]>(`${API}/reports`)
             reports.value = toArray(data)
         } catch (e: any) {
             error.value = 'Failed to fetch reports'
@@ -44,7 +45,7 @@ export const useReportsStore = defineStore('reports', () => {
     }
 
     async function addReport(report: Omit<Report, 'id' | 'createdAt' | 'status' | 'votes'>) {
-        const newReport = await $fetch<Report>(`${API}/reports`, {
+        const newReport = await apiFetch<Report>(`${API}/reports`, {
             method: 'POST',
             body: report,
         })
@@ -55,7 +56,7 @@ export const useReportsStore = defineStore('reports', () => {
 
     async function voteReport(reportId: string) {
         try {
-            const updated = await $fetch<Report>(`${API}/reports/${reportId}/vote`, {
+            const updated = await apiFetch<Report>(`${API}/reports/${reportId}/vote`, {
                 method: 'POST',
             })
             const idx = reports.value.findIndex(r => r.id === reportId)
@@ -71,7 +72,7 @@ export const useReportsStore = defineStore('reports', () => {
     }
 
     async function updateReportStatus(reportId: string, status: string) {
-        const updated = await $fetch<Report>(
+        const updated = await apiFetch<Report>(
             `${API}/reports/${reportId}/status?status=${encodeURIComponent(status)}`,
             { method: 'PATCH' }
         )

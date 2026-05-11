@@ -103,7 +103,7 @@ const phoneNumber = ref('')
 const config = useRuntimeConfig()
 const { data: fetchedReports, refresh } = await useAsyncData(
   'all-reports',
-  () => $fetch(`${config.public.apiBase}/api/reports`),
+  () => $fetch(`${config.public.apiBase}/api/reports`, { headers: { 'ngrok-skip-browser-warning': 'true' } }),
   { server: false }
 )
 
