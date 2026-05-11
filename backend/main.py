@@ -305,10 +305,10 @@ async def ask_ollama(user_message: str) -> str:
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             r = await client.post(
-                "https://api.ollama.com/v1/chat/completions",
+                "https://ollama.com/v1/chat/completions",
                 headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"},
                 json={
-                    "model": "llama3.2",
+                    "model": "gemma3:4b",
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": user_message},
