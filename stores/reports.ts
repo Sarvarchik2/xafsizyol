@@ -17,70 +17,68 @@ export interface Report {
     votes: number
 }
 
-const API = '/api'
-
 const toArray = (v: unknown): Report[] =>
     Array.isArray(v) ? (v as Report[]).filter(r => r && typeof r.id === 'string') : []
 
-export const useReportsStore = defineStore('reports', {
-    state: () => ({
-        reports: [] as Report[],
-        loading: false,
-        error: null as string | null,
-    }),
-    // Персистентность отключена — данные всегда берём с сервера
-    persist: false,
-    actions: {
-        async fetchReports() {
-            if (this.loading) return
-            this.loading = true
-            this.error = null
-            try {
-                const data = await $fetch<Report[]>(`${API}/reports`)
-                this.reports = toArray(data)
-            } catch (e: any) {
-                this.error = 'Failed to fetch reports'
-                console.error('[Store] fetchReports:', e)
-            } finally {
-                this.loading = false
-            }
-        },
+export const useReportsStore = defineStore('reports', () => {
+    const config = useRuntimeConfig()
+    const API = `${config.public.apiBase}/api`
 
-        async addReport(report: Omit<Report, 'id' | 'createdAt' | 'status' | 'votes'>) {
-            const newReport = await $fetch<Report>(`${API}/reports`, {
+    const reports = ref<Report[]>([])
+    const loading = ref(false)
+    const error = ref<string | null>(null)
+
+    async function fetchReports() {
+        if (loading.value) return
+        loading.value = true
+        error.value = null
+        try {
+            const data = await $fetch<Report[]>(`${API}/reports`)
+            reports.value = toArray(data)
+        } catch (e: any) {
+            error.value = 'Failed to fetch reports'
+            console.error('[Store] fetchReports:', e)
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function addReport(report: Omit<Report, 'id' | 'createdAt' | 'status' | 'votes'>) {
+        const newReport = await $fetch<Report>(`${API}/reports`, {
+            method: 'POST',
+            body: report,
+        })
+        if (!Array.isArray(reports.value)) reports.value = []
+        reports.value.unshift(newReport)
+        return newReport
+    }
+
+    async function voteReport(reportId: string) {
+        try {
+            const updated = await $fetch<Report>(`${API}/reports/${reportId}/vote`, {
                 method: 'POST',
-                body: report,
             })
-            if (!Array.isArray(this.reports)) this.reports = []
-            this.reports.unshift(newReport)
-            return newReport
-        },
+            const idx = reports.value.findIndex(r => r.id === reportId)
+            if (idx !== -1) reports.value[idx] = updated
+        } catch {
+            const report = reports.value.find(r => r.id === reportId)
+            if (report) report.votes++
+        }
+    }
 
-        async voteReport(reportId: string) {
-            try {
-                const updated = await $fetch<Report>(`${API}/reports/${reportId}/vote`, {
-                    method: 'POST',
-                })
-                const idx = this.reports.findIndex(r => r.id === reportId)
-                if (idx !== -1) this.reports[idx] = updated
-            } catch {
-                const report = this.reports.find(r => r.id === reportId)
-                if (report) report.votes++
-            }
-        },
+    function getUserReports(userId: string) {
+        return toArray(reports.value).filter(r => r.userId === userId)
+    }
 
-        getUserReports(userId: string) {
-            return toArray(this.reports).filter(r => r.userId === userId)
-        },
+    async function updateReportStatus(reportId: string, status: string) {
+        const updated = await $fetch<Report>(
+            `${API}/reports/${reportId}/status?status=${encodeURIComponent(status)}`,
+            { method: 'PATCH' }
+        )
+        const idx = reports.value.findIndex(r => r.id === reportId)
+        if (idx !== -1) reports.value[idx] = updated
+        return updated
+    }
 
-        async updateReportStatus(reportId: string, status: string) {
-            const updated = await $fetch<Report>(
-                `${API}/reports/${reportId}/status?status=${encodeURIComponent(status)}`,
-                { method: 'PATCH' }
-            )
-            const idx = this.reports.findIndex(r => r.id === reportId)
-            if (idx !== -1) this.reports[idx] = updated
-            return updated
-        },
-    },
+    return { reports, loading, error, fetchReports, addReport, voteReport, getUserReports, updateReportStatus }
 })

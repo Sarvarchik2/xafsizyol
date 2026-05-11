@@ -13,9 +13,10 @@ import { useReportsStore } from '~/stores/reports'
 const reportsStore = useReportsStore()
 const route = useRoute()
 
+const config = useRuntimeConfig()
 const { data: fetchedReports, refresh } = await useAsyncData(
   'all-reports',
-  () => $fetch('/api/reports'),
+  () => $fetch(`${config.public.apiBase}/api/reports`),
   { server: false }
 )
 
