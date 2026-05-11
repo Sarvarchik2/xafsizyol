@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { $fetch as ofetch } from 'ofetch'
 
 export interface Report {
     id: string
@@ -23,7 +24,7 @@ const toArray = (v: unknown): Report[] =>
 export const useReportsStore = defineStore('reports', () => {
     const config = useRuntimeConfig()
     const API = `${config.public.apiBase}/api`
-    const apiFetch = $fetch.create({ headers: { 'ngrok-skip-browser-warning': 'true' } })
+    const apiFetch = ofetch.create({ headers: { 'ngrok-skip-browser-warning': 'true' } })
 
     const reports = ref<Report[]>([])
     const loading = ref(false)
