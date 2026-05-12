@@ -3,6 +3,7 @@ import hmac
 import hashlib
 import uuid
 import sqlite3
+import asyncio
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from enum import Enum
@@ -14,6 +15,11 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain_chroma import Chroma
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, DirectoryLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.prompts import ChatPromptTemplate
 
 load_dotenv()
 
@@ -23,6 +29,13 @@ ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "")
 BACKEND_URL = os.getenv("BACKEND_URL") or os.getenv("NUXT_PUBLIC_API_BASE", "")
 WEB_APP_URL = os.getenv("WEB_APP_URL", "")
 OLLAMA_API_KEY = os.getenv("OLLAMA_API_KEY", "")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemma4:e4b")
+EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text-v2-moe")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+CHROMA_DIR = os.path.join(os.path.dirname(__file__), "chroma_db")
+
+vector_db: Chroma | None = None
 
 SYSTEM_PROMPT = """You are the official AI assistant of the Xafsizyol app. Always reply in the same language the user writes in: Uzbek, Russian, or English. Be friendly, concise, and helpful.
 
@@ -246,11 +259,80 @@ def row_to_report(row) -> Report:
     )
 
 
+# ─── RAG ─────────────────────────────────────────────────────────────────────
+
+def _build_or_load_vector_db() -> Chroma | None:
+    try:
+        embeddings = OllamaEmbeddings(model=EMBED_MODEL, base_url=OLLAMA_BASE_URL)
+
+        # Load existing DB if already built
+        if os.path.exists(CHROMA_DIR) and os.listdir(CHROMA_DIR):
+            print("[RAG] Loading existing ChromaDB...")
+            return Chroma(persist_directory=CHROMA_DIR, embedding_function=embeddings)
+
+        print("[RAG] Building ChromaDB from documents...")
+        docs = []
+        if os.path.exists(DATA_DIR):
+            for loader_cls, pattern in [(PyPDFLoader, "**/*.pdf"), (TextLoader, "**/*.txt")]:
+                loader = DirectoryLoader(DATA_DIR, glob=pattern, loader_cls=loader_cls, silent_errors=True)
+                docs.extend(loader.load())
+
+        if not docs:
+            print("[RAG] No documents found in data/ — skipping vector DB.")
+            return None
+
+        splitter = RecursiveCharacterTextSplitter(chunk_size=800, chunk_overlap=150)
+        chunks = splitter.split_documents(docs)
+        db = Chroma.from_documents(documents=chunks, embedding=embeddings, persist_directory=CHROMA_DIR)
+        print(f"[RAG] Built vector DB with {len(chunks)} chunks from {len(docs)} documents.")
+        return db
+    except Exception as e:
+        print(f"[RAG] Failed to initialize: {e}")
+        return None
+
+
+RAG_PROMPT = ChatPromptTemplate.from_template(
+    """{system_prompt}
+
+━━━ RELEVANT KNOWLEDGE ━━━
+{context}
+
+━━━ USER MESSAGE ━━━
+{question}
+
+Answer:"""
+)
+
+
+def _rag_query(question: str) -> str:
+    global vector_db
+    try:
+        llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_BASE_URL, temperature=0.2)
+
+        context = ""
+        if vector_db is not None:
+            docs = vector_db.as_retriever(search_kwargs={"k": 4}).invoke(question)
+            context = "\n\n".join(d.page_content for d in docs)
+
+        chain = RAG_PROMPT | llm
+        response = chain.invoke({
+            "system_prompt": SYSTEM_PROMPT,
+            "context": context,
+            "question": question,
+        })
+        return response.content
+    except Exception as e:
+        print(f"[RAG] Query error: {e}")
+        return "⚠️ Kechirasiz, xatolik yuz berdi. Qayta urinib ko'ring."
+
+
 # ─── Startup ─────────────────────────────────────────────────────────────────
 
 @app.on_event("startup")
 def startup():
+    global vector_db
     init_db()
+    vector_db = _build_or_load_vector_db()
 
 
 # ─── Telegram helpers ────────────────────────────────────────────────────────
@@ -390,32 +472,8 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def web_chat(body: ChatRequest):
-    reply = await ask_ollama(body.message)
+    reply = await asyncio.get_event_loop().run_in_executor(None, _rag_query, body.message)
     return {"reply": reply}
-
-
-async def ask_ollama(user_message: str) -> str:
-    if not OLLAMA_API_KEY:
-        return "⚠️ AI yordamchi hozir mavjud emas."
-    try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            r = await client.post(
-                "https://ollama.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"},
-                json={
-                    "model": "gemma3:4b",
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": user_message},
-                    ],
-                    "stream": False,
-                },
-            )
-        data = r.json()
-        return data["choices"][0]["message"]["content"]
-    except Exception as e:
-        print(f"[Ollama] error: {e}")
-        return "⚠️ Kechirasiz, xatolik yuz berdi. Qayta urinib ko'ring."
 
 
 @app.post("/webhook")
@@ -451,8 +509,7 @@ async def telegram_webhook(request: Request):
         await send_telegram_message(chat_id, greeting, markup)
 
     elif text and not text.startswith("/"):
-        # AI response via Ollama
-        reply = await ask_ollama(text)
+        reply = await asyncio.get_event_loop().run_in_executor(None, _rag_query, text)
         await send_telegram_message(chat_id, reply)
 
     return {"ok": True}

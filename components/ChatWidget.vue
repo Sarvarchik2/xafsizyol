@@ -1,6 +1,6 @@
 <template>
   <!-- Floating chat button -->
-  <div class="fixed bottom-20 right-4 z-[70] md:bottom-6">
+  <div class="fixed bottom-20 left-4 z-[70] md:bottom-6">
     <button
       @click="toggleChat"
       class="w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-primary/90 transition-all active:scale-95"
@@ -14,7 +14,7 @@
   <Transition name="chat-slide">
     <div
       v-if="isOpen"
-      class="fixed bottom-36 right-4 z-[70] w-[340px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-airbnb-lightGray flex flex-col overflow-hidden md:bottom-24"
+      class="fixed bottom-36 left-4 z-[70] w-[340px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-airbnb-lightGray flex flex-col overflow-hidden md:bottom-24"
       style="height: 480px"
     >
       <!-- Header -->

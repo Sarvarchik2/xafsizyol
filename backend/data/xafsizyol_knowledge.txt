@@ -1,0 +1,154 @@
+XAFSIZYOL PROJECT KNOWLEDGE BASE
+==================================
+
+ABOUT THE APP
+--------------
+Xafsizyol (means "Safe Road" in Uzbek) is a civic platform for reporting road potholes and hazards across Uzbekistan.
+It works as a Telegram Mini App — opens directly inside Telegram, no separate browser needed.
+Also accessible via web browser.
+The app is completely free for all citizens.
+Supported languages: Uzbek, Russian, English.
+Region covered: All of Uzbekistan — Tashkent and all provinces (viloyatlar).
+
+HOW IT WORKS
+-------------
+Citizens report a road problem → Authorities review it → Problem gets fixed.
+The process: user submits report with photo and location → report appears on the map → authorities see it → status changes → citizen gets notified.
+
+HOW TO REPORT A PROBLEM (step by step)
+---------------------------------------
+1. Press "Muammoni xabar qilish" button in the Telegram bot
+2. Inside the Mini App, press the "+" button
+3. Take a photo or choose from gallery (REQUIRED — photo is mandatory)
+4. Confirm your exact location on the map (GPS auto-detects, you can adjust)
+5. Choose severity level: Small / Medium / Critical
+6. Write a short description (optional but helpful)
+7. Enter your phone number (optional — for authorities to contact you if needed)
+8. Press "Yuborish" (Submit) — report appears on the map instantly
+
+SEVERITY LEVELS
+----------------
+Small (Kichik / Небольшая):
+- Minor crack or small pothole
+- Driveable with care
+- Low urgency
+
+Medium (O'rta / Средняя):
+- Noticeable pothole
+- Caution needed
+- Can damage tires
+- Should be repaired within weeks
+
+Critical (Kritik / Критичная):
+- Dangerous, deep or wide pothole
+- Risk of accidents, tire blowouts, suspension damage
+- Urgent repair needed — priority for authorities
+
+REPORT STATUSES
+----------------
+Pending (Kutilmoqda / Ожидает рассмотрения):
+- New report, not yet reviewed by authorities
+- Default status when a report is submitted
+
+In Progress (Ko'rib chiqilmoqda / На проверке / In Review):
+- Authorities have acknowledged the problem and started working on it
+- User gets a Telegram notification when status changes to this
+
+Fixed (Bajarildi / Исправлено / Fixed):
+- Problem has been resolved and road has been repaired
+- User gets a Telegram notification
+- Report stays visible on map but marked as fixed
+
+MAP FILTERS
+------------
+All (Hammasi / Все / All) — show all reports regardless of status or severity
+Critical (Xavfli / Критичные / Critical) — only Critical severity reports
+Recent (Yaqinda / Недавние / Recent) — latest submitted reports
+Fixed (Tuzatilgan / Исправленные / Fixed) — resolved problems only
+
+VOTING SYSTEM
+--------------
+Users can vote on any report to indicate they have the same problem.
+More votes = higher priority for authorities.
+Votes are visible on the map and in report details.
+If you see a pothole that also bothers you, tap "Menda ham shu muammo" (I have this problem too) to vote.
+
+MY REPORTS
+-----------
+The "My Reports" section (profile icon in bottom nav) shows all reports submitted by the current user.
+Users can track the status of their own submissions here.
+
+REAL ROAD SITUATION IN UZBEKISTAN
+-----------------------------------
+Road infrastructure in Uzbekistan has significant challenges.
+Common pothole locations in Tashkent: Amir Temur shoh ko'chasi, Chilonzor ko'chalari, Yunusabad, Mirzo Ulug'bek, Yakkasaroy, Sergeli districts.
+Seasonal damage: spring thaw causes major road cracking; summer heat expands cracks; winter freeze-thaw cycles destroy asphalt.
+Common causes: heavy truck traffic, poor drainage, old asphalt, temperature fluctuations.
+Responsible authority: Toshkent shahar yo'l xo'jaligi boshqarmasi (Tashkent City Road Management) and regional hokimiyat offices.
+Vehicle damage from potholes costs Uzbek drivers millions of soums annually (tires, suspension, rims, alignment).
+Xafsizyol helps by providing collected data to allow authorities to prioritize repairs by severity and vote count.
+
+FREQUENTLY ASKED QUESTIONS
+----------------------------
+
+Q: What is Xafsizyol? / Bu ilova nima? / Что такое Xafsizyol?
+A (EN): Xafsizyol is a free road pothole reporting app for Uzbekistan. Works as a Telegram Mini App. Take a photo, pin the location, and your report goes straight to road authorities.
+A (UZ): Xafsizyol — yo'llardagi chuqurlar haqida xabar berish ilovasi. Telegram Mini App orqali ishlaydi. Rasm olib, xaritada joylashuvni belgilab, muammo haqida xabar qilasiz — bepul va oson.
+A (RU): Xafsizyol — бесплатное приложение для сообщений о дорожных ямах в Узбекистане. Работает через Telegram. Сфотографируй яму, отметь на карте — отчёт сразу виден властям.
+
+Q: How do I use it? / Qanday ishlataman? / Как пользоваться?
+A: Open Telegram bot → press "Muammoni xabar qilish" → tap "+" → take photo → confirm location on map → choose severity → add description (optional) → Submit.
+
+Q: Is photo required? / Rasm majburiyми? / Фото обязательно?
+A: Yes. Photo is required to verify the reported issue. Without photo the report cannot be submitted.
+
+Q: Why enter phone number? / Telefon raqam nima uchun? / Зачем номер телефона?
+A: Phone number is optional. Authorities may contact you for additional details if needed.
+
+Q: When will my report be reviewed? / Xabarim qachon ko'riladi? / Когда рассмотрят?
+A: After submission the report gets "Pending" status. Authorities change it to "In Progress" when they start, and "Fixed" when repaired. You receive a Telegram notification for each status change.
+
+Q: Why vote? / Ovoz berish nima uchun? / Зачем голосовать?
+A: Votes show how many people are affected. More votes = higher priority. If you see a pothole that bothers you too, vote for it to help get it fixed faster.
+
+Q: My report is not showing on the map / Xaritada ko'rinmayapti / Не отображается на карте
+A: Refresh the page. If still not visible, check that GPS location was accurately pinned during submission.
+
+Q: Is it free? / Bepulmi? / Бесплатно ли?
+A: Yes. Completely free for all citizens of Uzbekistan.
+
+Q: Who is this app for? / Bot kimlar uchun? / Для кого этот бот?
+A: For all citizens of Uzbekistan who drive or walk and notice road hazards. Anyone can report a problem.
+
+TECHNICAL INFORMATION (API)
+-----------------------------
+Backend: FastAPI (Python), SQLite database
+Frontend: Nuxt.js (Vue.js), TailwindCSS, Telegram Mini App SDK
+Maps: Leaflet.js
+AI: Ollama (local LLM), LangChain RAG, ChromaDB vector store
+
+API Endpoints:
+- GET /api/reports — get all reports
+- GET /api/reports/{id} — get specific report by ID
+- GET /api/reports/user/{userId} — get reports by user
+- POST /api/reports — create new report (requires: lat, lng, address, severity, description; optional: photo, city, district, userId, phoneNumber)
+- POST /api/reports/{id}/vote — add a vote to a report
+- PATCH /api/reports/{id}/status — update report status
+- POST /api/auth/validate — validate Telegram initData
+- POST /api/chat — web chat endpoint (RAG-powered)
+- GET /api/health — health check
+
+Report fields:
+- id: unique 8-character hex string
+- photo: URL to photo image
+- lat/lng: GPS coordinates
+- address: street address text
+- city: city name
+- district: district name
+- severity: Small / Medium / Critical
+- description: text description of the problem
+- userId: Telegram user ID
+- phoneNumber: optional contact phone
+- createdAt: ISO timestamp
+- status: Pending / In Progress / Fixed
+- votes: integer vote count

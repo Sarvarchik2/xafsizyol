@@ -3,3 +3,10 @@ uvicorn
 httpx
 pydantic
 python-dotenv
+langchain
+langchain-ollama
+langchain-chroma
+langchain-community
+langchain-text-splitters
+chromadb
+pypdf
