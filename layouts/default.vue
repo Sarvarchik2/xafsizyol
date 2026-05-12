@@ -38,15 +38,22 @@
     <div v-if="!isReportPage" class="fixed top-4 right-4 z-[60]">
       <div class="flex items-center bg-white rounded-full shadow-airbnb border border-airbnb-lightGray p-1 h-[48px]">
         <button @click="setLocale('uz')"
-          :class="['h-full px-4 flex items-center justify-center text-xs font-black rounded-full transition-all', locale === 'uz' ? 'bg-primary text-white shadow-sm' : 'text-airbnb-black hover:bg-gray-50']">
+          :class="['h-full px-3 flex items-center justify-center text-xs font-black rounded-full transition-all', locale === 'uz' ? 'bg-primary text-white shadow-sm' : 'text-airbnb-black hover:bg-gray-50']">
           UZ
         </button>
         <button @click="setLocale('ru')"
-          :class="['h-full px-4 flex items-center justify-center text-xs font-black rounded-full transition-all', locale === 'ru' ? 'bg-primary text-white shadow-sm' : 'text-airbnb-black hover:bg-gray-50']">
+          :class="['h-full px-3 flex items-center justify-center text-xs font-black rounded-full transition-all', locale === 'ru' ? 'bg-primary text-white shadow-sm' : 'text-airbnb-black hover:bg-gray-50']">
           RU
+        </button>
+        <button @click="setLocale('en')"
+          :class="['h-full px-3 flex items-center justify-center text-xs font-black rounded-full transition-all', locale === 'en' ? 'bg-primary text-white shadow-sm' : 'text-airbnb-black hover:bg-gray-50']">
+          EN
         </button>
       </div>
     </div>
+
+    <!-- Chat Widget -->
+    <ChatWidget v-if="!isReportPage" />
   </div>
 </template>
 

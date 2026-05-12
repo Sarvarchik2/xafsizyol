@@ -1,0 +1,67 @@
+{
+    "search": "Search",
+    "city": "City",
+    "district": "District",
+    "pothole_list": "Explore potholes",
+    "report_step_1": "Show the problem",
+    "severity_critical": "Critical",
+    "add_button": "Report a pothole",
+    "nav": {
+        "map": "Map",
+        "list": "List",
+        "report": "Report",
+        "profile": "Profile",
+        "my_reports": "My reports",
+        "unknown_street": "Unknown street",
+        "no_reports_found": "No reports found",
+        "city": "City",
+        "district": "District"
+    },
+    "status": {
+        "sent": "Submitted",
+        "review": "Under review",
+        "done": "Fixed",
+        "recent": "Recent"
+    },
+    "report": {
+        "title": "Report an issue",
+        "description": "Description",
+        "severity": "Severity level",
+        "location": "Location",
+        "photo": "Photo",
+        "phone": "Phone number",
+        "submit": "Submit",
+        "take_photo": "Take or upload a photo",
+        "step_2_title": "Where is it located?",
+        "step_2_desc": "Confirm the location on the map",
+        "step_3_title": "Almost done!",
+        "step_3_desc": "How serious is this problem?",
+        "pothole_size": "Pothole size",
+        "extra_details": "Additional details (optional)",
+        "placeholder_details": "e.g. deep enough to damage wheels...",
+        "preview_title": "Final review",
+        "preview_desc": "Make sure everything is correct before submitting",
+        "selected_location": "Selected location",
+        "no_desc": "No additional description provided",
+        "back": "Back",
+        "continue": "Continue",
+        "placeholder_address": "Street name or landmark"
+    },
+    "map": {
+        "search_placeholder": "Where is the pothole?",
+        "location": "Location",
+        "vote_button": "I have this problem too",
+        "vote": "Vote"
+    },
+    "tags": {
+        "all": "All",
+        "critical": "Critical",
+        "recent": "Recent",
+        "fixed": "Fixed"
+    },
+    "severity": {
+        "small": "Small",
+        "medium": "Medium",
+        "critical": "Critical"
+    }
+}
