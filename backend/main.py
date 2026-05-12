@@ -15,11 +15,16 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from langchain_ollama import ChatOllama, OllamaEmbeddings
-from langchain_chroma import Chroma
-from langchain_community.document_loaders import PyPDFLoader, TextLoader, DirectoryLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.prompts import ChatPromptTemplate
+
+# RAG — optional, only used if packages are installed
+try:
+    from langchain_community.embeddings import FastEmbedEmbeddings
+    from langchain_chroma import Chroma
+    from langchain_community.document_loaders import PyPDFLoader, TextLoader, DirectoryLoader
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+    RAG_AVAILABLE = True
+except ImportError:
+    RAG_AVAILABLE = False
 
 load_dotenv()
 
@@ -261,11 +266,15 @@ def row_to_report(row) -> Report:
 
 # ─── RAG ─────────────────────────────────────────────────────────────────────
 
-def _build_or_load_vector_db() -> Chroma | None:
-    try:
-        embeddings = OllamaEmbeddings(model=EMBED_MODEL, base_url=OLLAMA_BASE_URL)
+vector_db = None
 
-        # Load existing DB if already built
+def _build_or_load_vector_db():
+    if not RAG_AVAILABLE:
+        print("[RAG] LangChain packages not installed — skipping vector DB.")
+        return None
+    try:
+        embeddings = FastEmbedEmbeddings(model_name="BAAI/bge-small-en-v1.5")
+
         if os.path.exists(CHROMA_DIR) and os.listdir(CHROMA_DIR):
             print("[RAG] Loading existing ChromaDB...")
             return Chroma(persist_directory=CHROMA_DIR, embedding_function=embeddings)
@@ -291,39 +300,15 @@ def _build_or_load_vector_db() -> Chroma | None:
         return None
 
 
-RAG_PROMPT = ChatPromptTemplate.from_template(
-    """{system_prompt}
-
-━━━ RELEVANT KNOWLEDGE ━━━
-{context}
-
-━━━ USER MESSAGE ━━━
-{question}
-
-Answer:"""
-)
-
-
-def _rag_query(question: str) -> str:
-    global vector_db
+def _get_rag_context(question: str) -> str:
+    if vector_db is None:
+        return ""
     try:
-        llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_BASE_URL, temperature=0.2)
-
-        context = ""
-        if vector_db is not None:
-            docs = vector_db.as_retriever(search_kwargs={"k": 4}).invoke(question)
-            context = "\n\n".join(d.page_content for d in docs)
-
-        chain = RAG_PROMPT | llm
-        response = chain.invoke({
-            "system_prompt": SYSTEM_PROMPT,
-            "context": context,
-            "question": question,
-        })
-        return response.content
+        docs = vector_db.as_retriever(search_kwargs={"k": 4}).invoke(question)
+        return "\n\n".join(d.page_content for d in docs)
     except Exception as e:
-        print(f"[RAG] Query error: {e}")
-        return "⚠️ Kechirasiz, xatolik yuz berdi. Qayta urinib ko'ring."
+        print(f"[RAG] Retrieval error: {e}")
+        return ""
 
 
 # ─── Startup ─────────────────────────────────────────────────────────────────
@@ -472,8 +457,39 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def web_chat(body: ChatRequest):
-    reply = await asyncio.get_event_loop().run_in_executor(None, _rag_query, body.message)
+    reply = await ask_ai(body.message)
     return {"reply": reply}
+
+
+async def ask_ai(user_message: str) -> str:
+    if not OLLAMA_API_KEY:
+        return "⚠️ AI yordamchi hozir mavjud emas."
+    try:
+        # Enrich message with RAG context if available
+        context = await asyncio.get_event_loop().run_in_executor(None, _get_rag_context, user_message)
+        if context:
+            enriched = f"{user_message}\n\n[Relevant context:\n{context}]"
+        else:
+            enriched = user_message
+
+        async with httpx.AsyncClient(timeout=60) as client:
+            r = await client.post(
+                "https://ollama.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {OLLAMA_API_KEY}"},
+                json={
+                    "model": LLM_MODEL,
+                    "messages": [
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": enriched},
+                    ],
+                    "stream": False,
+                },
+            )
+        data = r.json()
+        return data["choices"][0]["message"]["content"]
+    except Exception as e:
+        print(f"[AI] error: {e}")
+        return "⚠️ Kechirasiz, xatolik yuz berdi. Qayta urinib ko'ring."
 
 
 @app.post("/webhook")
@@ -509,7 +525,7 @@ async def telegram_webhook(request: Request):
         await send_telegram_message(chat_id, greeting, markup)
 
     elif text and not text.startswith("/"):
-        reply = await asyncio.get_event_loop().run_in_executor(None, _rag_query, text)
+        reply = await ask_ai(text)
         await send_telegram_message(chat_id, reply)
 
     return {"ok": True}
