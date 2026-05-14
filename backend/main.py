@@ -282,11 +282,7 @@ def _build_or_load_vector_db():
         print("[RAG] Building ChromaDB from documents...")
         docs = []
         if os.path.exists(DATA_DIR):
-            for loader_cls, pattern in [
-                (PyPDFLoader, "**/*.pdf"),
-                (TextLoader, "**/*.txt"),
-                (TextLoader, "**/*.md"),
-            ]:
+            for loader_cls, pattern in [(PyPDFLoader, "**/*.pdf"), (TextLoader, "**/*.txt")]:
                 loader = DirectoryLoader(DATA_DIR, glob=pattern, loader_cls=loader_cls, silent_errors=True)
                 docs.extend(loader.load())
 
