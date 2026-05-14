@@ -1,30 +1,42 @@
-name: CI/CD Pipeline
+name: CI and Security Pipeline
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
 
 jobs:
-  build-and-test:
+  build-test-secure:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+    - name: Check out repository
+      uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+    # 1. Spin up the exact Docker environment from docker-compose.yml
+    - name: Build and Start Container
+      run: docker compose up -d --build
 
-    - name: Build Backend Image
-      run: |
-        docker build -t xafsizyol-backend ./backend
+    # 2. Install the security tools INSIDE the running container
+    - name: Install DevSecOps Tools in Container
+      run: docker compose exec -T backend pip install flake8 bandit pip-audit
 
-    - name: Build Frontend Image
-      run: |
-        docker build -t xafsizyol-frontend .
+    # 3. Static Analysis (Flake8)
+    - name: Run Linter
+      run: docker compose exec -T backend flake8 . --count --show-source --statistics
 
-    - name: Docker Compose Check
-      run: |
-        docker compose config
+    # 4. Dependency Scanning (pip-audit)
+    - name: Scan Dependencies
+      run: docker compose exec -T backend pip-audit
+
+    # 5. Static App Security Testing (Bandit)
+    - name: Scan Source Code
+      run: docker compose exec -T backend bandit -r . -f custom -s B101
+
+    # 6. Unit Testing (Pytest)
+    - name: Run Unit Tests
+      run: docker compose exec -T backend pytest
+
+    # 7. Clean up the environment
+    - name: Stop Containers
+      if: always()
+      run: docker compose down
